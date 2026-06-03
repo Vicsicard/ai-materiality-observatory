@@ -45,6 +45,11 @@ export interface IDatabaseService {
   createArticle(article: Omit<Article, 'id' | 'created_at'>): Promise<Article>;
   getArticleById(id: number): Promise<Article | null>;
   getArticleBySlug(slug: string): Promise<Article | null>;
+  getArticleByEventId(eventId: number): Promise<Article | null>;
+  updateArticle(eventId: number, updates: { title: string; slug: string; content: string }): Promise<void>;
+  updateArticleStatus(articleId: number, status: string): Promise<void>;
+  deleteArticle(articleId: number): Promise<void>;
+  getAllArticles(): Promise<any[]>;
   getObservations(limit?: number): Promise<Observation[]>;
   getObservationWithContent(slug: string): Promise<(Article & { signal_type: string }) | null>;
 }
@@ -181,7 +186,79 @@ export class DatabaseService implements IDatabaseService {
     return result || null;
   }
 
+  async getArticleByEventId(eventId: number): Promise<Article | null> {
+    const stmt = this.db.prepare(`
+      SELECT id, event_id, title, slug, content, status, created_at
+      FROM articles WHERE event_id = ?
+    `);
+    
+    const result = await stmt.bind(eventId).first<Article>();
+    return result || null;
+  }
+
+  async updateArticle(eventId: number, updates: { title: string; slug: string; content: string }): Promise<void> {
+    const stmt = this.db.prepare(`
+      UPDATE articles 
+      SET title = ?, slug = ?, content = ?
+      WHERE event_id = ?
+    `);
+    
+    const result = await stmt.bind(updates.title, updates.slug, updates.content, eventId).run();
+    
+    if (!result.success) {
+      throw new Error('Failed to update article');
+    }
+  }
+
+  async updateArticleStatus(articleId: number, status: string): Promise<void> {
+    const stmt = this.db.prepare(`
+      UPDATE articles 
+      SET status = ?
+      WHERE id = ?
+    `);
+    
+    const result = await stmt.bind(status, articleId).run();
+    
+    if (!result.success) {
+      throw new Error('Failed to update article status');
+    }
+  }
+
+  async deleteArticle(articleId: number): Promise<void> {
+    const stmt = this.db.prepare(`
+      DELETE FROM articles 
+      WHERE id = ?
+    `);
+    
+    const result = await stmt.bind(articleId).run();
+    
+    if (!result.success) {
+      throw new Error('Failed to delete article');
+    }
+  }
+
   // Observation operations (for homepage)
+  // Admin operations - get all articles without status filtering
+  async getAllArticles(): Promise<any[]> {
+    const stmt = this.db.prepare(`
+      SELECT 
+        a.id,
+        a.title,
+        a.slug,
+        a.status,
+        a.created_at,
+        e.source_url,
+        s.signal_type
+      FROM articles a
+      JOIN events e ON a.event_id = e.id
+      JOIN signals s ON a.event_id = s.event_id
+      ORDER BY a.created_at DESC
+    `);
+    
+    const results = await stmt.all();
+    return results.results;
+  }
+
   async getObservations(limit: number = 10): Promise<Observation[]> {
     const stmt = this.db.prepare(`
       SELECT 

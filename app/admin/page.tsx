@@ -1,12 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface Article {
+  id: number;
+  title: string;
+  slug: string;
+  status: string;
+  created_at: string;
+  source_url: string;
+  signal_type: string;
+}
 
 export default function AdminPage() {
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,7 +27,7 @@ export default function AdminPage() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/process-article', {
+      const response = await fetch('https://ai-materiality-observatory.vic-76c.workers.dev/api/process-article', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,8 +41,13 @@ export default function AdminPage() {
 
       const data = await response.json();
       
-      if (data.approved) {
-        setResult(`Article processed and published successfully! Signal type: ${data.signalType}`);
+      if (data.status === 'already_exists') {
+        setResult(`Article already exists! Event ID: ${data.eventId}, Article ID: ${data.articleId}`);
+      } else if (data.persisted || data.articleId) {
+        const statusText = data.approved ? 'published' : 'saved for review';
+        setResult(`✓ Observation Created Successfully\n\nTitle: ${data.headline}\nArticle ID: ${data.articleId}\nStatus: ${statusText}\nSlug: ${data.slug}`);
+        // Refresh articles list after successful creation
+        fetchArticles();
       } else {
         setError(`Article not approved: ${data.validationReasons?.join(', ') || 'Unknown reason'}`);
       }
@@ -40,6 +57,55 @@ export default function AdminPage() {
       setIsSubmitting(false);
     }
   };
+
+  const fetchArticles = async () => {
+    console.log('[ADMIN_DASHBOARD_FETCH] requesting articles');
+    setIsLoadingArticles(true);
+    try {
+      const response = await fetch('https://ai-materiality-observatory.vic-76c.workers.dev/api/admin/articles');
+      console.log('[ADMIN_DASHBOARD_FETCH] response status:', response.status);
+      const data = await response.json();
+      console.log('[ADMIN_DASHBOARD_FETCH] response data:', data);
+      setArticles(data);
+    } catch (err) {
+      console.error('Failed to fetch articles:', err);
+    } finally {
+      setIsLoadingArticles(false);
+    }
+  };
+
+  const publishArticle = async (articleId: number) => {
+    try {
+      const response = await fetch(`https://ai-materiality-observatory.vic-76c.workers.dev/api/admin/articles/${articleId}/publish`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        fetchArticles(); // Refresh list
+      }
+    } catch (err) {
+      console.error('Failed to publish article:', err);
+    }
+  };
+
+  const deleteArticle = async (articleId: number) => {
+    if (confirm('Are you sure you want to delete this article?')) {
+      try {
+        const response = await fetch(`https://ai-materiality-observatory.vic-76c.workers.dev/api/admin/articles/${articleId}`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          fetchArticles(); // Refresh list
+        }
+      } catch (err) {
+        console.error('Failed to delete article:', err);
+      }
+    }
+  };
+
+  // Load articles on component mount
+  useEffect(() => {
+    fetchArticles();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,18 +168,66 @@ export default function AdminPage() {
           )}
         </div>
 
-        <div className="mt-8 bg-gray-100 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Pipeline Process</h3>
-          <ol className="space-y-2 text-sm text-gray-600">
-            <li>1. Article extraction from URL</li>
-            <li>2. Signal detection and analysis</li>
-            <li>3. Materiality qualification</li>
-            <li>4. Signal classification</li>
-            <li>5. Organizational relevance assessment</li>
-            <li>6. Observatory brief generation</li>
-            <li>7. Editorial validation</li>
-            <li>8. Database storage and publication</li>
-          </ol>
+        {/* Generated Observations Section */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">GENERATED OBSERVATIONS</h2>
+          <p className="text-gray-600 mb-6">
+            All stored observations, including drafts and published articles.
+          </p>
+
+          {isLoadingArticles ? (
+            <p className="text-gray-500">Loading articles...</p>
+          ) : articles.length === 0 ? (
+            <p className="text-gray-500">No articles found.</p>
+          ) : (
+            <div className="space-y-4">
+              {articles.map((article) => (
+                <div key={article.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{article.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Status: <span className="font-medium">{article.status || 'draft'}</span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Created: {new Date(article.created_at).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Slug: <span className="font-mono text-xs">{article.slug}</span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Source: {new URL(article.source_url).hostname}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <a
+                        href={`/observations/${article.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        View
+                      </a>
+                      {article.status !== 'published' && (
+                        <button
+                          onClick={() => publishArticle(article.id)}
+                          className="text-green-600 hover:text-green-800 text-sm font-medium"
+                        >
+                          Publish
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteArticle(article.id)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
