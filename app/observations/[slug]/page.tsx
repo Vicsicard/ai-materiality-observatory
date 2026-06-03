@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+console.log('[OBSERVATION_PAGE] PAGE LOADED - ROUTE REACHED');
+
 interface Article {
   id: number;
   title: string;
