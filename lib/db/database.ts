@@ -104,6 +104,15 @@ export class DatabaseService implements IDatabaseService {
     return result || null;
   }
 
+  async deleteEvent(id: number): Promise<boolean> {
+    const stmt = this.db.prepare(`
+      DELETE FROM events WHERE id = ?
+    `);
+    
+    const result = await stmt.bind(id).run();
+    return result.success;
+  }
+
   // Signal operations
   async createSignal(signal: Omit<Signal, 'id' | 'created_at'>): Promise<Signal> {
     const stmt = this.db.prepare(`

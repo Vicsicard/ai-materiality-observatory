@@ -35,11 +35,18 @@ export default function AdminPage() {
         body: JSON.stringify({ url }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process article');
-      }
-
       const data = await response.json();
+      
+      if (!response.ok) {
+        // Extract backend diagnostics
+        const errorMessage = [
+          data.stage && `Stage: ${data.stage}`,
+          data.error && `Error: ${data.error}`,
+          data.details && `Details: ${data.details}`
+        ].filter(Boolean).join('\n');
+        
+        throw new Error(errorMessage || 'Failed to process article');
+      }
       
       if (data.status === 'already_exists') {
         setResult(`Article already exists! Event ID: ${data.eventId}, Article ID: ${data.articleId}`);
@@ -163,7 +170,8 @@ export default function AdminPage() {
 
           {error && (
             <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-800">{error}</p>
+              <p className="text-red-800 font-medium mb-2">Processing Error:</p>
+              <pre className="text-red-700 text-sm whitespace-pre-wrap">{error}</pre>
             </div>
           )}
         </div>
