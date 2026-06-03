@@ -1,0 +1,17 @@
+name = "ai-materiality-observatory"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "npm run build"
+cwd = "./"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-materiality-observatory"
+database_id = "37937690-2807-4c8e-89d2-ae6a37f9b02f"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.preview]
+vars = { ENVIRONMENT = "preview" }
