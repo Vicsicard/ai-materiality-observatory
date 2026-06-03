@@ -7,6 +7,13 @@ interface QualityGateResult {
 	reason?: string;
 }
 
+// Centralized CORS headers
+const corsHeaders = {
+	"Access-Control-Allow-Origin": "https://ai-materiality-observatory.vercel.app",
+	"Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+	"Access-Control-Allow-Headers": "Content-Type",
+};
+
 function validateExtractionQuality(content: string): QualityGateResult {
 	// Must have at least 800 characters
 	if (content.length < 800) {
@@ -74,6 +81,14 @@ export default {
 	async fetch(request: Request, env: Env) {
 		const url = new URL(request.url);
 		
+		// Handle CORS preflight requests
+		if (request.method === "OPTIONS") {
+			return new Response(null, {
+				status: 200,
+				headers: corsHeaders,
+			});
+		}
+		
 		// Handle API routes with D1 access
 		if (url.pathname.startsWith('/api/')) {
 			// Import and initialize database for API routes
@@ -90,7 +105,10 @@ export default {
 					const body = await request.json() as { url: string };
 					
 					if (!body.url) {
-						return new Response(JSON.stringify({ error: 'URL required' }), { status: 400 });
+						return new Response(JSON.stringify({ error: 'URL required' }), { 
+							status: 400,
+							headers: corsHeaders
+						});
 					}
 					
 					// Extract article
@@ -115,7 +133,10 @@ export default {
 						if (!qualityGate.passed) {
 							return new Response(JSON.stringify({ 
 								error: qualityGate.reason 
-							}), { status: 400 });
+							}), { 
+								status: 400,
+								headers: corsHeaders
+							});
 						}
 						
 					} catch (extractionError) {
@@ -124,7 +145,10 @@ export default {
 						console.error('Stack trace:', extractionError instanceof Error ? extractionError.stack : 'No stack trace available');
 						return new Response(JSON.stringify({ 
 							error: extractionError instanceof Error ? extractionError.message : 'Article extraction failed' 
-						}), { status: 400 });
+						}), { 
+							status: 400,
+							headers: corsHeaders
+						});
 					}
 					
 					// Run pipeline
@@ -247,7 +271,12 @@ export default {
 								articleId: event.id,
 								slug,
 								persisted: true
-							}), { headers: { 'Content-Type': 'application/json' } });
+							}), { 
+								headers: { 
+									'Content-Type': 'application/json',
+									...corsHeaders
+								} 
+							});
 						} catch (dbError) {
 							console.log('PIPELINE STAGE: D1 Insert - FAIL');
 							console.error('D1 insertion failed:', dbError);
@@ -255,13 +284,21 @@ export default {
 							return new Response(JSON.stringify({ 
 								error: 'Database insertion failed',
 								details: dbError instanceof Error ? dbError.message : 'Unknown database error'
-							}), { status: 500 });
+							}), { 
+								status: 500,
+								headers: corsHeaders
+							});
 						}
 					}
 					
 					// Always include the generated article in response for debugging
 					// The pipeline already includes the article when validation fails, so just return the full result
-					return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
+					return new Response(JSON.stringify(result), { 
+								headers: { 
+									'Content-Type': 'application/json',
+									...corsHeaders
+								} 
+							});
 					} catch (pipelineError) {
 						console.log('PIPELINE STAGE: Pipeline - FAIL');
 						console.error('Pipeline failed:', pipelineError);
@@ -269,12 +306,18 @@ export default {
 						return new Response(JSON.stringify({ 
 							error: 'Pipeline processing failed',
 							details: pipelineError instanceof Error ? pipelineError.message : 'Unknown pipeline error'
-						}), { status: 500 });
+						}), { 
+							status: 500,
+							headers: corsHeaders
+						});
 					}
 				} catch (error) {
 					console.error('API error:', error);
 					console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-					return new Response(JSON.stringify({ error: 'Processing failed' }), { status: 500 });
+					return new Response(JSON.stringify({ error: 'Processing failed' }), { 
+				status: 500,
+				headers: corsHeaders
+			});
 				}
 			}
 		
@@ -291,13 +334,19 @@ export default {
 				console.log('[ADMIN_ARTICLE_FETCH] first rows:', articles?.slice?.(0, 5));
 				
 				return new Response(JSON.stringify(articles), { 
-					headers: { 'Content-Type': 'application/json' } 
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					} 
 				});
 			} catch (error) {
 				console.error('Failed to fetch admin articles:', error);
 				return new Response(JSON.stringify({ error: 'Failed to fetch admin articles' }), { 
 					status: 500,
-					headers: { 'Content-Type': 'application/json' }
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					}
 				});
 			}
 		}
@@ -315,40 +364,28 @@ export default {
 				console.log('[ADMIN_ARTICLE_PUBLISH] article published:', articleId);
 				
 				return new Response(JSON.stringify({ success: true, articleId }), { 
-					headers: { 'Content-Type': 'application/json' } 
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					} 
 				});
 			} catch (error) {
 				console.error('Failed to publish article:', error);
 				return new Response(JSON.stringify({ error: 'Failed to publish article' }), { 
 					status: 500,
-					headers: { 'Content-Type': 'application/json' }
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					}
 				});
 			}
 		}
 		
-		// DELETE /api/admin/articles/:id - Delete article
-		const deleteMatch = url.pathname.match(/^\/api\/admin\/articles\/(\d+)$/);
-		if (deleteMatch && request.method === 'DELETE') {
-			console.log('[ADMIN_ARTICLE_DELETE] endpoint hit');
-			const articleId = parseInt(deleteMatch[1]);
-			try {
-				const { DatabaseService } = await import('@/lib/db/database');
-				const db = new DatabaseService(env.DB);
-				
-				await db.deleteArticle(articleId);
-				console.log('[ADMIN_ARTICLE_DELETE] article deleted:', articleId);
-				
-				return new Response(JSON.stringify({ success: true, articleId }), { 
-					headers: { 'Content-Type': 'application/json' } 
-				});
-			} catch (error) {
-				console.error('Failed to delete article:', error);
-				return new Response(JSON.stringify({ error: 'Failed to delete article' }), { 
-					status: 500,
-					headers: { 'Content-Type': 'application/json' }
-				});
-			}
-		}
+		// DELETE /api/admin/articles/:id - DISABLED - DATA LOSS PREVENTION
+		// DELETE FUNCTIONALITY REMOVED TO PREVENT ACCIDENTAL DATA LOSS
+		// Article ID 1 was deleted during testing - DO NOT RE-ENABLE DELETE
+		// Use archive functionality instead
+		console.log('[ADMIN_DELETE] Delete endpoint disabled for data protection');
 		
 		// GET /api/observations - List all observations
 		if (url.pathname === '/api/observations' && request.method === 'GET') {
@@ -359,13 +396,19 @@ export default {
 				const observations = await db.getObservations();
 				
 				return new Response(JSON.stringify(observations), { 
-					headers: { 'Content-Type': 'application/json' } 
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					} 
 				});
 			} catch (error) {
 				console.error('Failed to fetch observations:', error);
 				return new Response(JSON.stringify({ error: 'Failed to fetch observations' }), { 
 					status: 500,
-					headers: { 'Content-Type': 'application/json' }
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					}
 				});
 			}
 		}
@@ -383,18 +426,27 @@ export default {
 				if (!observation) {
 					return new Response(JSON.stringify({ error: 'Observation not found' }), { 
 						status: 404,
-						headers: { 'Content-Type': 'application/json' }
+						headers: { 
+							'Content-Type': 'application/json',
+							...corsHeaders
+						}
 					});
 				}
 				
 				return new Response(JSON.stringify(observation), { 
-					headers: { 'Content-Type': 'application/json' } 
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					} 
 				});
 			} catch (error) {
 				console.error('Failed to fetch observation:', error);
 				return new Response(JSON.stringify({ error: 'Failed to fetch observation' }), { 
 					status: 500,
-					headers: { 'Content-Type': 'application/json' }
+					headers: { 
+						'Content-Type': 'application/json',
+						...corsHeaders
+					}
 				});
 			}
 		}
@@ -409,6 +461,12 @@ export default {
 				'GET /api/observations',
 				'GET /api/observations/:slug'
 			]
-		}), { status: 404, headers: { 'Content-Type': 'application/json' } });
+		}), { 
+			status: 404, 
+			headers: { 
+				'Content-Type': 'application/json',
+				...corsHeaders
+			} 
+		});
 	}
 };

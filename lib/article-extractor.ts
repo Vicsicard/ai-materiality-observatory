@@ -49,28 +49,107 @@ export class ArticleExtractor {
   }
   
   private extractContent(html: string): string {
-    // Remove script and style tags
-    let cleaned = html.replace(/<script[^>]*>.*?<\/script>/gi, '');
-    cleaned = cleaned.replace(/<style[^>]*>.*?<\/style>/gi, '');
+    // Remove unwanted elements first
+    let cleaned = html
+      .replace(/<script[^>]*>.*?<\/script>/gi, '')
+      .replace(/<style[^>]*>.*?<\/style>/gi, '')
+      .replace(/<noscript[^>]*>.*?<\/noscript>/gi, '')
+      .replace(/<svg[^>]*>.*?<\/svg>/gi, '')
+      .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
+      .replace(/<nav[^>]*>.*?<\/nav>/gi, '')
+      .replace(/<footer[^>]*>.*?<\/footer>/gi, '')
+      .replace(/<header[^>]*>.*?<\/header>/gi, '');
+
+    // Try article-specific selectors in order of preference
+    const articleSelectors = [
+      'article',
+      'main article',
+      '[data-testid*="article"]',
+      '[class*="article"]',
+      '[class*="story"]',
+      '[class*="content"]',
+      'main',
+      '.content',
+      '.post-content',
+      '.entry-content'
+    ];
     
-    // Extract text from common content tags
-    const contentTags = ['article', 'main', '.content', '.post-content', '.entry-content'];
-    
-    for (const tag of contentTags) {
-      const regex = new RegExp(`<${tag}[^>]*>(.*?)<\/${tag}>`, 'gi');
-      const match = cleaned.match(regex);
-      if (match) {
-        return this.stripHtml(match[1]).trim();
+    for (const selector of articleSelectors) {
+      const regex = new RegExp(`<${selector}[^>]*>(.*?)<\/${selector}>`, 'gis');
+      const matches = Array.from(cleaned.matchAll(regex));
+      
+      if (matches.length > 0) {
+        // Extract paragraph text from the matched content
+        let extractedText = '';
+        for (const match of matches) {
+          const paragraphRegex = /<p[^>]*>(.*?)<\/p>/gi;
+          const paragraphs = Array.from(match[1].matchAll(paragraphRegex));
+          
+          if (paragraphs.length > 0) {
+            for (const paragraph of paragraphs) {
+              extractedText += paragraph[1] + ' ';
+            }
+          } else {
+            // If no paragraphs, extract all text from the matched content
+            extractedText += match[1] + ' ';
+          }
+        }
+        
+        const cleanText = this.stripHtml(extractedText).trim();
+        if (this.isCleanContent(cleanText)) {
+          return cleanText;
+        }
       }
     }
     
-    // Fallback to body content
-    const bodyMatch = cleaned.match(/<body[^>]*>(.*?)<\/body>/i);
-    if (bodyMatch) {
-      return this.stripHtml(bodyMatch[1]).trim();
+    // If no clean extraction found, fail gracefully
+    throw new Error('Article extraction failed: clean article text could not be extracted');
+  }
+  
+  private isCleanContent(content: string): boolean {
+    const lowerContent = content.toLowerCase();
+    
+    // Reject if content contains JavaScript/HTML indicators
+    const prohibitedPatterns = [
+      'window.',
+      'function ',
+      'var ',
+      'const ',
+      'document.',
+      '<script',
+      'OptanonWrapper',
+      'googletag',
+      'dataLayer',
+      'console.',
+      'return ',
+      'if (',
+      'for (',
+      'while (',
+      '{',
+      '}'
+    ];
+    
+    for (const pattern of prohibitedPatterns) {
+      if (lowerContent.includes(pattern)) {
+        return false;
+      }
     }
     
-    return this.stripHtml(cleaned).trim();
+    // Must have reasonable length
+    if (content.length < 800) {
+      return false;
+    }
+    
+    // Must have reasonable text-to-code ratio (mostly text)
+    const textCharacters = content.replace(/[^\w\s.,!?;:]/g, '').length;
+    const totalCharacters = content.length;
+    const textRatio = textCharacters / totalCharacters;
+    
+    if (textRatio < 0.7) {
+      return false;
+    }
+    
+    return true;
   }
   
   private extractAuthor(html: string): string | undefined {

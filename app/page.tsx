@@ -9,9 +9,10 @@ interface Observation {
 }
 
 async function getObservations(): Promise<Observation[]> {
-  // Database will be populated after articles are submitted and processed
-  // For now, return empty array - observations will appear after first submission
-  return [];
+  // Fetch observations from Cloudflare Worker API
+  const response = await fetch('https://ai-materiality-observatory.vic-76c.workers.dev/api/observations');
+  const observations = await response.json();
+  return observations;
 }
 
 export default async function Home() {

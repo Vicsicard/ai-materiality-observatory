@@ -216,12 +216,8 @@ export default function AdminPage() {
                           Publish
                         </button>
                       )}
-                      <button
-                        onClick={() => deleteArticle(article.id)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Delete
-                      </button>
+                      {/* Delete button removed for data protection */}
+                      <span className="text-gray-400 text-sm font-medium">Delete Disabled</span>
                     </div>
                   </div>
                 </div>

@@ -59,7 +59,7 @@ ${this.generateLookingBeyondHeadline(signalType)}
 
 # Could This Apply To Your Organization?
 
-Organizations often understand AI exists. Many do not understand where it is used, how significant it has become, or whether dependencies are emerging. This event highlights the growing operational importance of AI in business environments, suggesting that organizations need greater visibility into their AI exposure and adoption patterns.
+Organizations often understand AI exists. Many do not understand where it is used, how significant it has become, or whether dependencies are emerging. This event highlights the growing operational importance of AI in business environments, suggesting that organizations may benefit from greater visibility into their AI exposure and adoption patterns.
 
 # Assessment CTA
 
@@ -73,7 +73,15 @@ Understanding whether AI adoption has become operationally significant begins wi
   }
   
   private generateTitle(headline: string, signalType: string): string {
-    // Transform news headline into signal-focused title
+    // Check if headline is a placeholder and generate meaningful title
+    const placeholderTitles = ['Event detected', 'Signal detected', 'Observation detected', 'Article detected'];
+    
+    if (placeholderTitles.includes(headline.trim())) {
+      // Generate meaningful title based on signal type when placeholder detected
+      return this.generateMeaningfulTitle(signalType);
+    }
+    
+    // Transform real news headline into signal-focused title
     const signalKeywords = {
       'Governance': ['Oversight', 'Policy', 'Regulation', 'Compliance'],
       'Infrastructure': ['Deployment', 'Integration', 'Systems', 'Platform'],
@@ -92,22 +100,68 @@ Understanding whether AI adoption has become operationally significant begins wi
     return `${entities.join(' ')} Signals Growing ${keyword} Around AI Operations`;
   }
   
+  private generateMeaningfulTitle(signalType: string): string {
+    // Generate meaningful title based on signal type when no headline available
+    const signalTitles = {
+      'Governance': [
+        'AI Governance Oversight Signals Emerging Policy Requirements',
+        'Regulatory Attention Indicates Growing AI Compliance Needs',
+        'Board-Level AI Oversight Becomes Increasingly Relevant'
+      ],
+      'Infrastructure': [
+        'AI Infrastructure Deployment Signals System Integration Needs',
+        'Platform Requirements Highlight Growing AI Systems Complexity',
+        'Technical Integration Signals AI Infrastructure Expansion'
+      ],
+      'Dependency': [
+        'AI Vendor Reliance Signals Growing Supply Chain Considerations',
+        'Third-Party Dependencies Highlight AI Ecosystem Risks',
+        'External AI Dependencies Signal Organizational Exposure'
+      ],
+      'Resource': [
+        'AI Talent Competition Signals Growing Investment Requirements',
+        'Resource Allocation Indicates AI Skill Acquisition Needs',
+        'Funding Patterns Signal AI Resource Intensification'
+      ],
+      'Sustainability': [
+        'AI Energy Consumption Signals Environmental Impact Considerations',
+        'Efficiency Requirements Highlight AI Sustainability Challenges',
+        'Resource Usage Indicates AI Environmental Footprint'
+      ],
+      'Reporting': [
+        'AI Disclosure Requirements Signal Growing Transparency Needs',
+        'Stakeholder Expectations Indicate AI Reporting Evolution',
+        'Metrics Development Signals AI Accountability Demands'
+      ]
+    };
+    
+    const titles = signalTitles[signalType as keyof typeof signalTitles] || signalTitles.Governance;
+    return titles[Math.floor(Math.random() * titles.length)];
+  }
+  
   private generateExecutiveObservation(summary: string, signalType: string, implications: string[]): string {
-    return `Recent developments indicate that AI is becoming increasingly operationally significant across organizations. The ${signalType.toLowerCase()} signal suggests that organizations need to consider how these trends may impact their own operations and strategic planning.
+    // Filter implications to remove prohibited language
+    const filteredImplications = implications.slice(0, 2).map(imp => 
+      imp.replace(/\b(essential|critical|revolutionary|game-changing|unprecedented|breakthrough|transformative|disruptive)\b/gi, 'operationally significant')
+         .replace(/\b(should|must|need to|have to|required)\b/gi, 'may want to')
+         .replace(/\b(best practice|recommended|strategy|action plan)\b/gi, 'worth considering')
+    );
+    
+    return `Recent developments indicate that AI is becoming increasingly operationally significant across organizations. The ${signalType.toLowerCase()} signal suggests that organizations may want to consider how these trends may impact their own operations and strategic planning.
 
-${implications.slice(0, 2).map(imp => imp.charAt(0).toUpperCase() + imp.slice(1)).join('. ')}. This pattern reflects the broader trend of AI moving from experimental to essential in business operations.`;
+${filteredImplications.map(imp => imp.charAt(0).toUpperCase() + imp.slice(1)).join('. ')}. This pattern reflects the broader trend of AI moving from experimental to operationally embedded in business operations.`;
   }
   
   private generateWhyThisMatters(signalType: string, signalReason: string): string {
-    return `This event matters because it illustrates the growing operational significance of AI in the ${signalType.toLowerCase()} domain. ${signalReason} Organizations should monitor these patterns as they may indicate emerging requirements or risks in their own operations.`;
+    return `This event matters because it illustrates the growing operational significance of AI in the ${signalType.toLowerCase()} domain. ${signalReason} Organizations may want to monitor these patterns as they may indicate emerging requirements or risks in their own operations.`;
   }
   
   private generateLargerSignal(signalType: string, signalReason: string): string {
-    return `The larger signal here is the systematic integration of AI into core ${signalType.toLowerCase()} functions. This represents a shift from AI as a peripheral technology to AI as an operational necessity. Organizations that recognize and adapt to this signal will be better positioned to manage the associated risks and opportunities.`;
+    return `The larger signal here is the systematic integration of AI into core ${signalType.toLowerCase()} functions. This represents a shift from AI as a peripheral technology to AI as an operationally significant factor. Organizations that recognize and adapt to this signal may be better positioned to manage the associated risks and opportunities.`;
   }
   
   private generateLookingBeyondHeadline(signalType: string): string {
-    return `Beyond the immediate news cycle, this event reflects a fundamental shift in how organizations approach AI in their ${signalType.toLowerCase()} operations. The pattern suggests that AI is no longer optional but becoming operationally embedded in ways that require systematic management and oversight.`;
+    return `Beyond the immediate news cycle, this event reflects a fundamental shift in how organizations approach AI in their ${signalType.toLowerCase()} operations. The pattern suggests that AI is no longer optional but becoming operationally embedded in ways that may benefit from systematic management and oversight.`;
   }
   
   private extractEntities(headline: string): string[] {

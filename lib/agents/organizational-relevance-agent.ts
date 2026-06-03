@@ -5,94 +5,219 @@ export interface OrganizationalRelevanceOutput {
 
 export class OrganizationalRelevanceAgent {
   async process(articleText: string, signalType: string): Promise<OrganizationalRelevanceOutput> {
-    const implications: string[] = [];
-    const questions: string[] = [];
+    const prompt = `
+You are an intelligence analyst.
+
+You are NOT a consultant.
+You are NOT providing recommendations.
+You are NOT providing implementation guidance.
+You are NOT telling organizations what to do.
+
+Your role is to identify:
+* observable patterns
+* emerging questions
+* potential areas of relevance
+* visibility considerations
+* operational signals
+
+You must remain observational and analytical.
+
+Never use:
+* essential
+* critical
+* must
+* should
+* need to
+* required
+* recommended
+* best practice
+* imperative language
+* advisory language
+
+Do not write:
+"Organizations should..."
+"Organizations need to..."
+"Organizations must..."
+"This is critical..."
+"This is essential..."
+"This is required..."
+
+Prefer language such as:
+* may indicate
+* may suggest
+* may raise questions
+* may become increasingly relevant
+* appears to signal
+* may contribute to
+* may influence
+* may affect
+* may warrant visibility
+* frequently emerges
+* often appears
+* may become observable
+* may create visibility challenges
+* may be associated with
+
+BAD EXAMPLE:
+AI governance is becoming essential for organizations adopting AI.
+Organizations need to establish controls.
+This is a critical development.
+
+GOOD EXAMPLE:
+The event may raise questions regarding governance visibility as AI adoption expands.
+The development may become increasingly relevant for organizations evaluating operational dependency on AI systems.
+The pattern may indicate growing organizational reliance on AI-enabled processes.
+
+BAD EXAMPLE:
+Organizations should evaluate infrastructure readiness.
+
+GOOD EXAMPLE:
+The event may raise questions regarding infrastructure capacity and operational dependency.
+
+---
+
+ARTICLE TEXT:
+${articleText}
+
+SIGNAL TYPE:
+${signalType}
+
+TASK:
+Based on the article text and signal type, identify:
+
+1. What organizational questions might this event raise?
+2. What areas of organizational visibility may become relevant?
+3. What operational patterns may be associated with this event?
+4. What emerging considerations may become increasingly relevant if similar patterns continue?
+
+Provide 3-4 observational implications (not recommendations) and 3-4 relevant questions.
+
+Format your response as JSON:
+{
+  "implications": ["implication 1", "implication 2", "implication 3"],
+  "questions": ["question 1", "question 2", "question 3"]
+}
+`;
+
+    // Simulate AI response - in production would use actual AI service
+    const response = await this.simulateAIResponse(prompt, signalType);
     
-    // Generate implications based on signal type
-    switch (signalType) {
-      case 'Governance':
-        implications.push(
-          'Increasing regulatory attention may require compliance updates',
-          'Board-level oversight responsibilities are expanding',
-          'Policy frameworks need to address AI governance gaps'
-        );
-        questions.push(
-          'Do we have clear AI governance policies in place?',
-          'Who is accountable for AI decisions in our organization?',
-          'Are our board members informed about AI risks and opportunities?'
-        );
-        break;
-        
-      case 'Infrastructure':
-        implications.push(
-          'AI deployment requires significant infrastructure investment',
-          'Integration complexity may impact existing systems',
-          'Scalability considerations are becoming critical'
-        );
-        questions.push(
-          'Do we have the technical infrastructure to support AI at scale?',
-          'How will AI integrate with our existing systems?',
-          'What are the infrastructure costs and timeline?'
-        );
-        break;
-        
-      case 'Dependency':
-        implications.push(
-          'Vendor reliance creates supply chain considerations',
-          'Third-party AI dependencies introduce new risks',
-          'Exit strategies may become important'
-        );
-        questions.push(
-          'Which AI vendors do we depend on?',
-          'Do we have contingency plans if vendors fail?',
-          'Are we locked into specific AI ecosystems?'
-        );
-        break;
-        
-      case 'Resource':
-        implications.push(
-          'Talent competition for AI skills is intensifying',
-          'Training investments are becoming essential',
-          'Resource allocation priorities may need adjustment'
-        );
-        questions.push(
-          'Do we have the right talent for AI initiatives?',
-          'What training programs do we need?',
-          'How should we budget for AI resources?'
-        );
-        break;
-        
-      case 'Sustainability':
-        implications.push(
-          'AI energy consumption is becoming a material concern',
-          'Environmental impact reporting may be required',
-          'Efficiency considerations are gaining importance'
-        );
-        questions.push(
-          'What is the environmental impact of our AI usage?',
-          'Do we track AI-related energy consumption?',
-          'How can we optimize AI for sustainability?'
-        );
-        break;
-        
-      case 'Reporting':
-        implications.push(
-          'Stakeholder expectations for AI transparency are rising',
-          'Disclosure requirements may be expanding',
-          'Metrics and measurement capabilities are needed'
-        );
-        questions.push(
-          'How do we report on AI usage and impact?',
-          'What metrics should we track for AI performance?',
-          'Are we prepared for increased disclosure requirements?'
-        );
-        break;
-        
-      default:
-        implications.push('AI adoption is creating organizational implications');
-        questions.push('How does this affect our organization?');
+    try {
+      const parsed = JSON.parse(response);
+      return {
+        implications: parsed.implications || [],
+        questions: parsed.questions || []
+      };
+    } catch (error) {
+      // Fallback to basic responses if JSON parsing fails
+      return {
+        implications: [
+          'The event may raise questions regarding organizational AI visibility',
+          'The pattern may indicate emerging operational considerations',
+          'The development may become increasingly relevant for organizational planning'
+        ],
+        questions: [
+          'What organizational questions might this event raise?',
+          'What areas of visibility may become relevant?',
+          'How might this affect organizational operations?'
+        ]
+      };
     }
+  }
+  
+  private async simulateAIResponse(prompt: string, signalType: string): Promise<string> {
+    // For now, return predefined responses that follow observatory guidelines
+    // In production, this would call an actual AI service
     
-    return { implications, questions };
+    const responses: Record<string, {implications: string[], questions: string[]}> = {
+      'Governance': {
+        implications: [
+          'The event may raise questions regarding governance visibility as AI adoption expands',
+          'The development may become increasingly relevant for organizational policy frameworks',
+          'The pattern may indicate growing board-level oversight considerations'
+        ],
+        questions: [
+          'What governance questions might this event raise for our organization?',
+          'What areas of policy visibility may become relevant?',
+          'How might this affect board-level oversight considerations?'
+        ]
+      },
+      'Infrastructure': {
+        implications: [
+          'The event may raise questions regarding infrastructure capacity and operational dependency',
+          'The development may become increasingly relevant for system integration planning',
+          'The pattern may indicate emerging scalability considerations'
+        ],
+        questions: [
+          'What infrastructure questions might this event raise?',
+          'What areas of technical visibility may become relevant?',
+          'How might this affect existing system dependencies?'
+        ]
+      },
+      'Dependency': {
+        implications: [
+          'The event may raise questions regarding vendor reliance and supply chain visibility',
+          'The development may become increasingly relevant for third-party risk assessment',
+          'The pattern may indicate growing ecosystem dependency considerations'
+        ],
+        questions: [
+          'What dependency questions might this event raise?',
+          'What areas of vendor visibility may become relevant?',
+          'How might this affect supply chain considerations?'
+        ]
+      },
+      'Resource': {
+        implications: [
+          'The event may raise questions regarding talent competition and skill availability',
+          'The development may become increasingly relevant for training investment planning',
+          'The pattern may indicate emerging resource allocation considerations'
+        ],
+        questions: [
+          'What resource questions might this event raise for our organization?',
+          'What areas of talent visibility may become relevant?',
+          'How might this affect budget and investment planning?'
+        ]
+      },
+      'Sustainability': {
+        implications: [
+          'The event may raise questions regarding energy consumption and environmental impact',
+          'The development may become increasingly relevant for sustainability reporting',
+          'The pattern may indicate emerging efficiency considerations'
+        ],
+        questions: [
+          'What sustainability questions might this event raise?',
+          'What areas of environmental visibility may become relevant?',
+          'How might this affect efficiency and resource planning?'
+        ]
+      },
+      'Reporting': {
+        implications: [
+          'The event may raise questions regarding transparency expectations and disclosure requirements',
+          'The development may become increasingly relevant for stakeholder communication',
+          'The pattern may indicate emerging metrics and measurement considerations'
+        ],
+        questions: [
+          'What reporting questions might this event raise?',
+          'What areas of disclosure visibility may become relevant?',
+          'How might this affect stakeholder communication planning?'
+        ]
+      }
+    };
+    
+    const defaultResponse = {
+      implications: [
+        'The event may raise questions regarding organizational AI considerations',
+        'The development may become increasingly relevant for operational planning',
+        'The pattern may indicate emerging visibility requirements'
+      ],
+      questions: [
+        'What organizational questions might this event raise?',
+        'What areas of visibility may become relevant?',
+        'How might this affect operational considerations?'
+      ]
+    };
+    
+    const selectedResponse = responses[signalType] || defaultResponse;
+    return JSON.stringify(selectedResponse);
   }
 }
