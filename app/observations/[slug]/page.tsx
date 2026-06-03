@@ -11,9 +11,25 @@ interface Article {
 }
 
 async function getArticle(slug: string): Promise<Article | null> {
-  // TODO: Implement real D1 database retrieval
-  // For now, return null to show 404
-  return null;
+  console.log('[OBSERVATION_PAGE] slug received:', slug);
+  console.log('[OBSERVATION_PAGE] API request: https://ai-materiality-observatory.vic-76c.workers.dev/api/observations/' + slug);
+  
+  // Fetch article from Cloudflare Worker API
+  const response = await fetch(`https://ai-materiality-observatory.vic-76c.workers.dev/api/observations/${slug}`);
+  
+  console.log('[OBSERVATION_PAGE] response status:', response.status);
+  console.log('[OBSERVATION_PAGE] response ok:', response.ok);
+  
+  if (!response.ok) {
+    console.log('[OBSERVATION_PAGE] observation not found condition triggered');
+    return null;
+  }
+  
+  const article = await response.json();
+  console.log('[OBSERVATION_PAGE] observation returned:', article ? 'YES' : 'NO');
+  console.log('[OBSERVATION_PAGE] article ID:', article?.id);
+  
+  return article;
 }
 
 export default async function ObservationPage({ params }: { params: { slug: string } }) {
