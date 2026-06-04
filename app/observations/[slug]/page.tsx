@@ -13,34 +13,20 @@ interface Article {
 }
 
 async function getArticle(slug: string): Promise<Article | null> {
-  console.log('[OBSERVATION_PAGE] slug received:', slug);
-  console.log('[OBSERVATION_PAGE] API request: Cloudflare Worker direct');
-  
   try {
-    const url = `https://ai-materiality-observatory.vic-76c.workers.dev/api/observations/${slug}`;
-    console.log('FETCH URL:', url);
-    
     // Fetch article directly from Cloudflare Worker (server component safe)
-    const response = await fetch(url, {
+    const response = await fetch(`https://ai-materiality-observatory.vic-76c.workers.dev/api/observations/${slug}`, {
       cache: 'no-store', // Ensure fresh data
       headers: {
         'Content-Type': 'application/json',
       }
     });
     
-    console.log('FETCH STATUS:', response.status);
-    console.log('[OBSERVATION_PAGE] response ok:', response.ok);
-    
     if (!response.ok) {
-      console.log('[OBSERVATION_PAGE] observation not found condition triggered');
       return null;
     }
     
     const article = await response.json();
-    console.log('FETCH JSON:', JSON.stringify(article));
-    console.log('[OBSERVATION_PAGE] observation returned:', article ? 'YES' : 'NO');
-    console.log('[OBSERVATION_PAGE] article ID:', article?.id);
-    
     return article;
   } catch (error) {
     console.error('[OBSERVATION_PAGE] fetch error:', error);
@@ -48,18 +34,16 @@ async function getArticle(slug: string): Promise<Article | null> {
   }
 }
 
-export default async function ObservationPage({ params }: { params: { slug: string } }) {
-  console.log('RUNTIME PARAMS:', JSON.stringify(params));
-  const article = await getArticle(params.slug);
-  console.log('RUNTIME ARTICLE:', JSON.stringify(article));
+export default async function ObservationPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
+  const article = await getArticle(slug);
 
-  console.log('[TRACE] params:', params);
-  console.log('[TRACE] params.slug:', params?.slug);
-  console.log('[TRACE] article value:', article);
-  console.log('[TRACE] article type:', typeof article);
-  console.log('[TRACE] article id:', article?.id);
-  console.log('[TRACE] article slug:', article?.slug);
-
+  
   if (!article) {
     notFound();
   }
