@@ -14,11 +14,11 @@ interface Article {
 
 async function getArticle(slug: string): Promise<Article | null> {
   console.log('[OBSERVATION_PAGE] slug received:', slug);
-  console.log('[OBSERVATION_PAGE] API request: https://ai-materiality-observatory.vic-76c.workers.dev/api/observations/' + slug);
+  console.log('[OBSERVATION_PAGE] API request: /api/observations/' + slug);
   
   try {
-    // Fetch article from Cloudflare Worker API
-    const response = await fetch(`https://ai-materiality-observatory.vic-76c.workers.dev/api/observations/${slug}`, {
+    // Fetch article from local API route (which forwards to Cloudflare Worker)
+    const response = await fetch(`/api/observations/${slug}`, {
       cache: 'no-store' // Ensure fresh data
     });
     
