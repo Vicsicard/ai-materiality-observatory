@@ -209,10 +209,10 @@ export default function AdminPage() {
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <a
-                        href={`/admin/articles/${article.id}`}
+                        href={`/observations/${article.slug}`}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       >
-                        View Draft
+                        View Article
                       </a>
                       {article.status !== 'published' && (
                         <button
