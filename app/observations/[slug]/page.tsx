@@ -47,6 +47,13 @@ async function getArticle(slug: string): Promise<Article | null> {
 export default async function ObservationPage({ params }: { params: { slug: string } }) {
   const article = await getArticle(params.slug);
 
+  console.log('[TRACE] params:', params);
+  console.log('[TRACE] params.slug:', params?.slug);
+  console.log('[TRACE] article value:', article);
+  console.log('[TRACE] article type:', typeof article);
+  console.log('[TRACE] article id:', article?.id);
+  console.log('[TRACE] article slug:', article?.slug);
+
   if (!article) {
     notFound();
   }
