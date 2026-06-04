@@ -17,6 +17,13 @@ async function getArticle(slug: string): Promise<Article | null> {
   console.log('[OBSERVATION_PAGE] API request: /api/observations/' + slug);
   
   try {
+    // DIAGNOSTIC: Check if this is server component and what fetch URL resolves to
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const fullUrl = `${baseUrl}/api/observations/${slug}`;
+    console.log('[OBSERVATION_PAGE] BASE URL:', baseUrl);
+    console.log('[OBSERVATION_PAGE] FULL URL:', fullUrl);
+    console.log('[OBSERVATION_PAGE] ENVIRONMENT:', process.env.NODE_ENV);
+    
     // Fetch article from local API route (which forwards to Cloudflare Worker)
     const response = await fetch(`/api/observations/${slug}`, {
       cache: 'no-store' // Ensure fresh data
@@ -37,6 +44,9 @@ async function getArticle(slug: string): Promise<Article | null> {
     return article;
   } catch (error) {
     console.error('[OBSERVATION_PAGE] fetch error:', error);
+    console.error('[OBSERVATION_PAGE] error type:', typeof error);
+    console.error('[OBSERVATION_PAGE] error message:', error instanceof Error ? error.message : 'No message');
+    console.error('[OBSERVATION_PAGE] error stack:', error instanceof Error ? error.stack : 'No stack');
     return null;
   }
 }
