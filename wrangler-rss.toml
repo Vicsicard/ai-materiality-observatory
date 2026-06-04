@@ -1,0 +1,18 @@
+name = "rss-intake-worker"
+main = "workers/rss-intake-worker-cf.ts"
+compatibility_date = "2024-01-01"
+account_id = "76cd4b0b6b2a2756cc6c1028f57ed961"
+
+[[d1_databases]]
+binding = "AMO_DB"
+database_name = "ai-materiality-observatory"
+database_id = "37937690-2807-4c8e-89d2-ae6a37f9b02f"
+
+[triggers]
+crons = ["0 * * * *"]  # Every hour
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.development]
+vars = { ENVIRONMENT = "development" }

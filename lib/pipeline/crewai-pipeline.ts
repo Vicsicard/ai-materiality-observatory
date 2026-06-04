@@ -4,6 +4,7 @@ import { SignalClassificationAgent, SignalClassificationOutput } from '../agents
 import { OrganizationalRelevanceAgent, OrganizationalRelevanceOutput } from '../agents/organizational-relevance-agent';
 import { ObservatoryWriterAgent, ObservatoryWriterInput } from '../agents/observatory-writer-agent';
 import { EditorialValidationAgent, EditorialValidationOutput } from '../agents/editorial-validation-agent';
+import { ExtractionSanitizer } from '../extraction-sanitizer';
 
 export interface PipelineInput {
   articleText: string;
@@ -44,26 +45,46 @@ export class CrewAIPipeline {
 
   async process(input: PipelineInput): Promise<PipelineOutput> {
     try {
-      // Debug: Check for prohibited words in source article
+      // Step 0: Sanitize extracted content
+      console.log('=== EXTRACTION SANITIZATION ===');
+      console.log('Original article length:', input.articleText.length);
+      
+      const pollutionReport = ExtractionSanitizer.getPollutionReport(input.articleText);
+      console.log('Content polluted:', pollutionReport.polluted);
+      if (pollutionReport.polluted) {
+        console.log('Pollution issues:', pollutionReport.issues);
+      }
+      
+      const sanitizedArticleText = ExtractionSanitizer.sanitize(input.articleText);
+      console.log('Sanitized article length:', sanitizedArticleText.length);
+      console.log('Content reduction:', ((input.articleText.length - sanitizedArticleText.length) / input.articleText.length * 100).toFixed(1) + '%');
+      
+      // Update input with sanitized content
+      const sanitizedInput = {
+        ...input,
+        articleText: sanitizedArticleText
+      };
+      
+      // Debug: Check for prohibited words in sanitized article
       console.log('=== Source Article Input ===');
-      console.log('Source article length:', input.articleText.length);
-      console.log('Contains "essential":', input.articleText.toLowerCase().includes('essential'));
-      console.log('Contains "critical":', input.articleText.toLowerCase().includes('critical'));
-      console.log('Contains "must":', input.articleText.toLowerCase().includes('must'));
-      console.log('Contains "should":', input.articleText.toLowerCase().includes('should'));
-      console.log('Contains "need to":', input.articleText.toLowerCase().includes('need to'));
-      console.log('Contains "required":', input.articleText.toLowerCase().includes('required'));
-      console.log('Contains "recommended":', input.articleText.toLowerCase().includes('recommended'));
-      if (input.articleText.toLowerCase().includes('essential')) {
+      console.log('Source article length:', sanitizedInput.articleText.length);
+      console.log('Contains "essential":', sanitizedInput.articleText.toLowerCase().includes('essential'));
+      console.log('Contains "critical":', sanitizedInput.articleText.toLowerCase().includes('critical'));
+      console.log('Contains "must":', sanitizedInput.articleText.toLowerCase().includes('must'));
+      console.log('Contains "should":', sanitizedInput.articleText.toLowerCase().includes('should'));
+      console.log('Contains "need to":', sanitizedInput.articleText.toLowerCase().includes('need to'));
+      console.log('Contains "required":', sanitizedInput.articleText.toLowerCase().includes('required'));
+      console.log('Contains "recommended":', sanitizedInput.articleText.toLowerCase().includes('recommended'));
+      if (sanitizedInput.articleText.toLowerCase().includes('essential')) {
         console.log('ESSENTIAL FOUND IN SOURCE - locating position...');
-        const essentialIndex = input.articleText.toLowerCase().indexOf('essential');
+        const essentialIndex = sanitizedInput.articleText.toLowerCase().indexOf('essential');
         const start = Math.max(0, essentialIndex - 50);
-        const end = Math.min(input.articleText.length, essentialIndex + 50);
-        console.log('Context around "essential":', input.articleText.substring(start, end));
+        const end = Math.min(sanitizedInput.articleText.length, essentialIndex + 50);
+        console.log('Context around "essential":', sanitizedInput.articleText.substring(start, end));
       }
       
       // Agent 1: Signal Detection
-      const signalDetection: SignalDetectionOutput = await this.signalDetectionAgent.process(input.articleText);
+      const signalDetection: SignalDetectionOutput = await this.signalDetectionAgent.process(sanitizedInput.articleText);
       
       // Debug: Check for prohibited words in Signal Detection output
       console.log('=== Signal Detection Agent Output ===');
@@ -79,7 +100,7 @@ export class CrewAIPipeline {
       
       // Agent 2: Materiality Qualification
       const materialityQualification: MaterialityQualificationOutput = await this.materialityQualificationAgent.process(
-        input.articleText, 
+        sanitizedInput.articleText, 
         signalDetection.headline, 
         signalDetection.summary
       );
@@ -106,7 +127,7 @@ export class CrewAIPipeline {
       
       // Agent 3: Signal Classification
       const signalClassification: SignalClassificationOutput = await this.signalClassificationAgent.process(
-        input.articleText,
+        sanitizedInput.articleText,
         signalDetection.headline,
         signalDetection.summary
       );
@@ -125,7 +146,7 @@ export class CrewAIPipeline {
       
       // Agent 4: Organizational Relevance
       const organizationalRelevance: OrganizationalRelevanceOutput = await this.organizationalRelevanceAgent.process(
-        input.articleText,
+        sanitizedInput.articleText,
         signalClassification.signal_type
       );
       

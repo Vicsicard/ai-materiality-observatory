@@ -6,11 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "validate:v2": "tsx tests/materiality-signal-validation/run-validation.ts",
+    "db:init": "wrangler d1 execute ai-materiality-observatory --file=lib/db/rss-schema.sql",
+    "db:seed": "wrangler d1 execute ai-materiality-observatory --file=lib/db/rss-seeds.sql",
+    "worker:deploy": "wrangler deploy",
+    "worker:dev": "wrangler dev",
+    "rss:test": "node -e \"console.log('RSS intake test - coming soon')\""
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20260602.1",
     "crewai": "^1.0.1",
+    "lucide-react": "^1.17.0",
     "next": "16.2.7",
     "react": "19.2.4",
     "react-dom": "19.2.4",
