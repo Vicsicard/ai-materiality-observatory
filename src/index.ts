@@ -332,6 +332,33 @@ export default {
 				}
 			}
 			
+			// GET /api/admin/candidates - List all candidate articles
+			if (url.pathname === '/api/admin/candidates' && request.method === 'GET') {
+				console.log('[ADMIN_CANDIDATES_FETCH] endpoint hit');
+				try {
+					const stmt = env.DB.prepare(`
+						SELECT 
+							ca.id,
+							ca.rss_article_id,
+							ca.title,
+							ca.url,
+							ca.source_name,
+							ca.created_at
+						FROM candidate_articles ca
+						ORDER BY ca.created_at DESC
+					`);
+					
+					const results = await stmt.all();
+					console.log('[ADMIN_CANDIDATES_FETCH] rows returned:', results.results?.length);
+					
+					return createSuccessResponse(results.results);
+				} catch (error) {
+					console.error('Failed to fetch admin candidates:', error);
+					return createErrorResponse('Failed to fetch admin candidates', 500, 
+						error instanceof Error ? error.message : 'Unknown error', 'admin_candidates_fetch');
+				}
+			}
+
 			// GET /api/admin/articles - List all articles for admin
 			if (url.pathname === '/api/admin/articles' && request.method === 'GET') {
 			console.log('[ADMIN_ARTICLE_FETCH] endpoint hit');
@@ -477,6 +504,7 @@ export default {
 				'POST /api/process-article',
 				'GET /api/observations',
 				'GET /api/observations/:slug',
+				'GET /api/admin/candidates',
 				'GET /api/admin/articles?status=draft|processing|ready_for_review|published|archived',
 				'POST /api/admin/publish',
 				'POST /api/admin/archive'

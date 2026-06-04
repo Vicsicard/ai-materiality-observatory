@@ -301,7 +301,7 @@ export class DatabaseService implements IDatabaseService {
         s.signal_type
       FROM articles a
       JOIN signals s ON a.event_id = s.event_id
-      WHERE a.slug = ? AND a.status = 'published'
+      WHERE a.slug = ? AND a.status IN ('published', 'ready_for_review')
     `);
     
     const result = await stmt.bind(slug).first<Article & { signal_type: string }>();
